@@ -298,7 +298,7 @@ fn generateSourceFileIfNotPresent(allocator: Allocator) !void {
             \\}
             \\
             \\test "it should do nothing" {
-            \\    const allocator = std.testing.allocator;
+            \\    const allocator = std.heap.page_allocator;
             \\    const input = "";
             \\
             \\    const problem: @This() = .{
