@@ -19,13 +19,13 @@ pub fn main() !void {
 
     if (try problem.part1()) |solution|
         try stdout.print(switch (@TypeOf(solution)) {
-            []const u8 => "{s}",
-            else => "{any}",
+            []const u8 => "part1: {s}",
+            else => "part1: {any}",
         } ++ "\n", .{solution});
 
     if (try problem.part2()) |solution|
         try stdout.print(switch (@TypeOf(solution)) {
-            []const u8 => "{s}",
-            else => "{any}",
+            []const u8 => "part2: {s}",
+            else => "part2: {any}",
         } ++ "\n", .{solution});
 }
