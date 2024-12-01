@@ -1,4 +1,4 @@
-#AOC 2024 
+# AOC 2024 
 
 this is my Advent of code repor for 2024 done in zig.
 It uses the aoc.zig-template, readme from the template below
