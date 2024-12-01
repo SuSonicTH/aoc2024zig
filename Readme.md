@@ -1,3 +1,8 @@
+#AOC 2024 
+
+this is my Advent of code repor for 2024 done in zig.
+It uses the aoc.zig-template, readme from the template below
+
 # aoc.zig-template
 
 This is a zig template for Advent of Code. It has a very opinionated structure
