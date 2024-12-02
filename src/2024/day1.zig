@@ -1,5 +1,6 @@
 const std = @import("std");
 const mem = std.mem;
+const common = @import("common.zig");
 
 input: []const u8,
 allocator: mem.Allocator,
@@ -47,13 +48,13 @@ const List = struct {
         while (pos < input.len) {
             var start = pos;
             while (input[pos] != ' ') pos += 1;
-            try list.left.append(try toNumber(input[start..pos]));
+            try list.left.append(try common.toNumber(input[start..pos]));
 
             while (input[pos] == ' ') pos += 1;
 
             start = pos;
             while (input[pos] != '\n') pos += 1;
-            try list.right.append(try toNumber(input[start..pos]));
+            try list.right.append(try common.toNumber(input[start..pos]));
 
             pos += 1;
         }
@@ -63,10 +64,6 @@ const List = struct {
         return list;
     }
 };
-
-fn toNumber(field: []const u8) !i64 {
-    return std.fmt.parseInt(i64, field, 10);
-}
 
 test "test sample" {
     const allocator = std.heap.page_allocator;
