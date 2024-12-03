@@ -129,6 +129,7 @@ pub fn main() !void {
     var steps_menu = false;
     var output_tmp_nonce: ?[16]u8 = null;
     var watch = false;
+    var clear = false;
     var fuzz = false;
     var debounce_interval_ms: u16 = 50;
     var listen_port: u16 = 0;
@@ -273,6 +274,8 @@ pub fn main() !void {
                 prominent_compile_errors = true;
             } else if (mem.eql(u8, arg, "--watch")) {
                 watch = true;
+            } else if (mem.eql(u8, arg, "--clear")) {
+                clear = true;
             } else if (mem.eql(u8, arg, "--fuzz")) {
                 fuzz = true;
             } else if (mem.eql(u8, arg, "-fincremental")) {
@@ -427,7 +430,9 @@ pub fn main() !void {
     defer run.thread_pool.deinit();
 
     rebuild: while (true) {
-        _ = try std.io.getStdOut().write("\x1B[2J\x1B[H");
+        if (clear) {
+            try clearScreen();
+        }
         runStepNames(
             gpa,
             builder,
@@ -496,6 +501,10 @@ pub fn main() !void {
             .clean => {},
         };
     }
+}
+
+fn clearScreen() !void {
+    _ = try std.io.getStdOut().write("\x1B[2J\x1B[H");
 }
 
 fn markFailedStepsDirty(gpa: Allocator, all_steps: []const *Step) void {
@@ -1301,6 +1310,7 @@ fn usage(b: *std.Build, out_stream: anytype) !void {
         \\  --skip-oom-steps             Instead of failing, skip steps that would exceed --maxrss
         \\  --fetch                      Exit after fetching dependency tree
         \\  --watch                      Continuously rebuild when source files are modified
+        \\  --clear                      Clear output between rebuilds
         \\  --fuzz                       Continuously search for unit test failures
         \\  --debounce <ms>              Delay before rebuilding after changed file detected
         \\     -fincremental             Enable incremental compilation
