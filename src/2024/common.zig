@@ -16,6 +16,17 @@ pub fn split(line: []const u8, delimiter: u8) ![]i64 {
     return splitBuffer[0..i];
 }
 
+pub fn instr(str: []const u8, start: usize, char: u8) ?usize {
+    var pos = start;
+    while (pos < str.len) {
+        if (str[pos] == char) {
+            return pos;
+        }
+        pos += 1;
+    }
+    return null;
+}
+
 const Matrix = struct {
     data: []const u8 = undefined,
     xMax: usize = undefined,
@@ -91,4 +102,16 @@ test "matrix" {
     try std.testing.expectEqual('0', mtx.get(10, 0));
     try std.testing.expectEqual('J', mtx.get(-1, 1));
     try std.testing.expectEqual('j', mtx.get(-1, -1));
+}
+
+test "instr" {
+    try std.testing.expectEqual(0, instr(":123", 0, ':').?);
+    try std.testing.expectEqual(1, instr("1:23", 0, ':').?);
+    try std.testing.expectEqual(2, instr("12:3", 0, ':').?);
+    try std.testing.expectEqual(3, instr("123:", 0, ':').?);
+    try std.testing.expectEqual(null, instr("123", 0, ':'));
+
+    try std.testing.expectEqual(1, instr("1:23", 1, ':').?);
+    try std.testing.expectEqual(2, instr("12:3", 2, ':').?);
+    try std.testing.expectEqual(3, instr("123:", 2, ':').?);
 }
