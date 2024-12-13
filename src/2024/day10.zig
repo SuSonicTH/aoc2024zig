@@ -1,7 +1,9 @@
 const std = @import("std");
 const mem = std.mem;
 const common = @import("common.zig");
-const Map = common.Matrix;
+
+const Map = common.Grid(u8);
+const Track = common.Grid(bool);
 
 input: []const u8,
 allocator: mem.Allocator,
@@ -15,18 +17,18 @@ pub fn part2(this: *const @This()) !?usize {
 }
 
 fn getTrailRating(input: []const u8, allocator: mem.Allocator, duplicates: bool) !?usize {
-    var map = try Map.init(input, allocator);
+    var map: Map = try common.readGrid(input, allocator);
     defer map.deinit();
 
-    const heads: []Position = try getHeads(map, allocator);
+    const heads: []Position = try getHeads(&map, allocator);
     defer allocator.free(heads);
 
-    var track = try Track.init(map.xMax + 1, map.yMax + 1, allocator);
+    var track = try Track.init(map.width, map.height, allocator);
     defer track.deinit();
 
     var score: usize = 0;
     for (heads) |head| {
-        track.reset();
+        track.reset(false);
         score += getScore(&map, &track, head.x, head.y, duplicates);
     }
     return score;
@@ -37,42 +39,10 @@ const Position = struct {
     y: usize,
 };
 
-const Track = struct {
-    allocator: mem.Allocator,
-    width: usize,
-    height: usize,
-    data: []bool,
-
-    fn init(width: usize, height: usize, allocator: mem.Allocator) !Track {
-        return .{
-            .allocator = allocator,
-            .width = width,
-            .height = height,
-            .data = try allocator.alloc(bool, width * height),
-        };
-    }
-
-    fn deinit(self: *Track) void {
-        self.allocator.free(self.data);
-    }
-
-    fn get(self: *Track, x: usize, y: usize) bool {
-        return self.data[y * self.width + x];
-    }
-
-    fn set(self: *Track, x: usize, y: usize, value: bool) void {
-        self.data[y * self.width + x] = value;
-    }
-
-    fn reset(self: *Track) void {
-        @memset(self.data, false);
-    }
-};
-
-fn getHeads(map: Map, allocator: mem.Allocator) ![]Position {
+fn getHeads(map: *Map, allocator: mem.Allocator) ![]Position {
     var list = std.ArrayList(Position).init(allocator);
-    for (0..map.yMax + 1) |y| {
-        for (0..map.xMax + 1) |x| {
+    for (0..map.width) |y| {
+        for (0..map.height) |x| {
             if (map.get(x, y) == '0') {
                 try list.append(.{ .x = x, .y = y });
             }
@@ -82,7 +52,7 @@ fn getHeads(map: Map, allocator: mem.Allocator) ![]Position {
 }
 
 fn getScore(map: *Map, track: *Track, x: usize, y: usize, duplicates: bool) usize {
-    const current = map.uget(x, y);
+    const current = map.get(x, y);
     if (current == '9') {
         if (duplicates) {
             return 1;
@@ -96,16 +66,16 @@ fn getScore(map: *Map, track: *Track, x: usize, y: usize, duplicates: bool) usiz
 
     const next = current + 1;
     var sum: usize = 0;
-    if (y > 0 and map.uget(x, y - 1) == next) {
+    if (y > 0 and map.get(x, y - 1) == next) {
         sum += getScore(map, track, x, y - 1, duplicates);
     }
-    if (y < map.yMax and map.uget(x, y + 1) == next) {
+    if (y < map.height - 1 and map.get(x, y + 1) == next) {
         sum += getScore(map, track, x, y + 1, duplicates);
     }
-    if (x > 0 and map.uget(x - 1, y) == next) {
+    if (x > 0 and map.get(x - 1, y) == next) {
         sum += getScore(map, track, x - 1, y, duplicates);
     }
-    if (x < map.xMax and map.uget(x + 1, y) == next) {
+    if (x < map.width - 1 and map.get(x + 1, y) == next) {
         sum += getScore(map, track, x + 1, y, duplicates);
     }
     return sum;
