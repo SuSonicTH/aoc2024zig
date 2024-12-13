@@ -31,19 +31,26 @@ pub fn part2(this: *const @This()) !?i64 {
     var items = try readMap(this.input, this.allocator);
     var to: usize = 0;
     var from: usize = items.len - 1;
-
     while (true) {
         const file = nextFile(items, from);
-
-        while (items[to] != -1) {
-            to += 1;
+        to = 0;
+        while (true) {
+            if (nextSpace(items, to)) |space| {
+                if (space.start > file.start) {
+                    break;
+                } else if (file.size <= space.size) {
+                    @memcpy(items[space.start .. space.start + file.size], items[file.start .. file.end + 1]);
+                    @memset(items[file.start .. file.end + 1], -1);
+                    break;
+                } else {
+                    to = space.end + 1;
+                }
+            }
         }
-        if (from > to) {
-            items[to] = items[from];
-            items[from] = -1;
-        } else {
+        if (file.start == 0) {
             break;
         }
+        from = file.start - 1;
     }
 
     return checkSum(items);
@@ -61,16 +68,44 @@ fn nextFile(items: []i64, from: usize) File {
     while (items[end] == -1) {
         end -= 1;
     }
-    var start = end - 1;
-    while (items[start] == items[end]) {
+
+    var start = end;
+    while (start > 0 and items[start - 1] == items[end]) {
         start -= 1;
     }
 
     return .{
         .start = start,
         .end = end,
-        .size = end - start,
+        .size = end - start + 1,
         .id = items[end],
+    };
+}
+
+const Space = struct {
+    start: usize,
+    end: usize,
+    size: usize,
+};
+
+fn nextSpace(items: []i64, from: usize) ?Space {
+    var start = from;
+    while (items[start] != -1 and start < items.len) {
+        start += 1;
+    }
+    if (start >= items.len) {
+        return null;
+    }
+
+    var end = start;
+    while (end + 1 < items.len and items[end + 1] == -1) {
+        end += 1;
+    }
+
+    return .{
+        .start = start,
+        .end = end,
+        .size = end - start + 1,
     };
 }
 
