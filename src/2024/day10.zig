@@ -7,14 +7,27 @@ input: []const u8,
 allocator: mem.Allocator,
 
 pub fn part1(this: *const @This()) !?usize {
-    var map = try Map.init(this.input, this.allocator);
-    const heads: []Position = try getHeads(map, this.allocator);
+    return getTrailRating(this.input, this.allocator, false);
+}
+
+pub fn part2(this: *const @This()) !?usize {
+    return getTrailRating(this.input, this.allocator, true);
+}
+
+fn getTrailRating(input: []const u8, allocator: mem.Allocator, duplicates: bool) !?usize {
+    var map = try Map.init(input, allocator);
+    defer map.deinit();
+
+    const heads: []Position = try getHeads(map, allocator);
+    defer allocator.free(heads);
+
+    var track = try Track.init(map.xMax + 1, map.yMax + 1, allocator);
+    defer track.deinit();
+
     var score: usize = 0;
-    var track = try Track.init(map.xMax + 1, map.yMax + 1, this.allocator);
     for (heads) |head| {
-        const s = getScore(&map, &track, head.x, head.y);
         track.reset();
-        score += s;
+        score += getScore(&map, &track, head.x, head.y, duplicates);
     }
     return score;
 }
@@ -68,10 +81,12 @@ fn getHeads(map: Map, allocator: mem.Allocator) ![]Position {
     return list.items;
 }
 
-fn getScore(map: *Map, track: *Track, x: usize, y: usize) usize {
+fn getScore(map: *Map, track: *Track, x: usize, y: usize, duplicates: bool) usize {
     const current = map.uget(x, y);
     if (current == '9') {
-        if (track.get(x, y)) {
+        if (duplicates) {
+            return 1;
+        } else if (track.get(x, y)) {
             return 0;
         } else {
             track.set(x, y, true);
@@ -82,23 +97,18 @@ fn getScore(map: *Map, track: *Track, x: usize, y: usize) usize {
     const next = current + 1;
     var sum: usize = 0;
     if (y > 0 and map.uget(x, y - 1) == next) {
-        sum += getScore(map, track, x, y - 1);
+        sum += getScore(map, track, x, y - 1, duplicates);
     }
     if (y < map.yMax and map.uget(x, y + 1) == next) {
-        sum += getScore(map, track, x, y + 1);
+        sum += getScore(map, track, x, y + 1, duplicates);
     }
     if (x > 0 and map.uget(x - 1, y) == next) {
-        sum += getScore(map, track, x - 1, y);
+        sum += getScore(map, track, x - 1, y, duplicates);
     }
     if (x < map.xMax and map.uget(x + 1, y) == next) {
-        sum += getScore(map, track, x + 1, y);
+        sum += getScore(map, track, x + 1, y, duplicates);
     }
     return sum;
-}
-
-pub fn part2(this: *const @This()) !?usize {
-    _ = this;
-    return 0;
 }
 
 test "part 1 case 1" {
@@ -174,5 +184,5 @@ test "test input" {
     };
 
     try std.testing.expectEqual(36, try problem.part1());
-    try std.testing.expectEqual(0, try problem.part2());
+    try std.testing.expectEqual(81, try problem.part2());
 }
