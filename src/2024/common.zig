@@ -27,12 +27,13 @@ pub fn instr(str: []const u8, start: usize, char: u8) ?usize {
     return null;
 }
 
-const Matrix = struct {
-    data: []const u8 = undefined,
-    xMax: usize = undefined,
-    yMax: usize = undefined,
+pub const Matrix = struct {
+    allocator: std.mem.Allocator,
+    data: []u8,
+    xMax: usize,
+    yMax: usize,
 
-    pub fn init(input: []const u8) Matrix {
+    pub fn init(input: []const u8, allocator: std.mem.Allocator) !Matrix {
         var pos: usize = 0;
         while (input[pos] != '\n') {
             pos += 1;
@@ -47,10 +48,15 @@ const Matrix = struct {
             pos += 1;
         }
         return .{
-            .data = input,
+            .allocator = allocator,
+            .data = try allocator.dupe(u8, input),
             .xMax = xMax,
             .yMax = yMax,
         };
+    }
+
+    pub fn deinit(self: Matrix) void {
+        self.allocator.free(self.data);
     }
 
     pub fn get(self: Matrix, x: i64, y: i64) u8 {
@@ -78,6 +84,11 @@ const Matrix = struct {
         const pos = y * (self.xMax + 2) + x;
         return self.data[pos];
     }
+
+    pub fn set(self: *Matrix, x: usize, y: usize, value: u8) void {
+        const pos = y * (self.xMax + 2) + x;
+        self.data[pos] = value;
+    }
 };
 
 test "matrix" {
@@ -87,8 +98,9 @@ test "matrix" {
         \\abcdefghij
         \\
     ;
+    const allocator = std.heap.page_allocator;
 
-    const mtx: Matrix = Matrix.init(input);
+    const mtx: Matrix = try Matrix.init(input, allocator);
     try std.testing.expectEqual(9, mtx.xMax);
     try std.testing.expectEqual(2, mtx.yMax);
 
