@@ -6,25 +6,28 @@ input: []const u8,
 allocator: mem.Allocator,
 
 pub fn part1(this: *const @This()) !?i64 {
-    var line = try readLine(this.input, this.allocator);
+    var line = Line.init(this.allocator);
     defer line.deinit();
-    return try line.simulate(25);
+
+    var sum: i64 = 0;
+    var it = std.mem.splitScalar(u8, this.input[0 .. this.input.len - 1], ' ');
+    while (it.next()) |stone| {
+        sum += try line.simulate(try common.toNumber(stone), 25);
+    }
+
+    return sum;
 }
 
 pub fn part2(this: *const @This()) !?i64 {
-    var line = try readLine(this.input, this.allocator);
+    var line = Line.init(this.allocator);
     defer line.deinit();
-    return try line.simulate(75);
-}
 
-fn readLine(input: []const u8, allocator: mem.Allocator) !Line {
-    var line = Line.init(allocator);
-    var it = std.mem.splitScalar(u8, input[0 .. input.len - 1], ' ');
+    var sum: i64 = 0;
+    var it = std.mem.splitScalar(u8, this.input[0 .. this.input.len - 1], ' ');
     while (it.next()) |stone| {
-        try line.add(try common.toNumber(stone));
+        sum += try line.simulate(try common.toNumber(stone), 75);
     }
-    line.flip();
-    return line;
+    return sum;
 }
 
 fn evenDigits(number: i64) !bool {
@@ -50,6 +53,7 @@ const Line = struct {
     current: *std.ArrayList(i64) = undefined,
     next: *std.ArrayList(i64) = undefined,
     index: usize = 0,
+    cache: std.AutoHashMap(i64, i64),
 
     var buffer: [2]std.ArrayList(i64) = undefined;
 
@@ -59,12 +63,14 @@ const Line = struct {
         return .{
             .current = &buffer[0],
             .next = &buffer[1],
+            .cache = std.AutoHashMap(i64, i64).init(allocator),
         };
     }
 
     fn deinit(self: *Line) void {
         self.current.deinit();
         self.next.deinit();
+        self.cache.deinit();
     }
 
     fn get(self: *Line) ?i64 {
@@ -88,9 +94,18 @@ const Line = struct {
         self.next.clearRetainingCapacity();
     }
 
-    fn simulate(self: *Line, iterations: u8) !i64 {
-        for (0..iterations) |iter| {
-            std.log.err("{d}:{d}", .{ iter, self.current.items.len });
+    fn simulate(self: *Line, number: i64, iterations: u8) !i64 {
+        if (self.cache.get(number)) |count| {
+            return count;
+        }
+
+        self.current.clearRetainingCapacity();
+        self.next.clearRetainingCapacity();
+        self.index = 0;
+        try self.add(number);
+        self.flip();
+
+        for (0..iterations) |_| {
             while (self.get()) |stone| {
                 if (stone == 0) {
                     try self.add(1);
@@ -104,7 +119,9 @@ const Line = struct {
             }
             self.flip();
         }
-        return @intCast(self.current.items.len);
+        const count: i64 = @intCast(self.current.items.len);
+        try self.cache.put(number, count);
+        return count;
     }
 };
 
@@ -122,15 +139,6 @@ test "Line" {
     try std.testing.expectEqual(4, line.get().?);
     try std.testing.expectEqual(2, line.get().?);
     try std.testing.expectEqual(1, line.get().?);
-    try std.testing.expectEqual(null, line.get());
-}
-
-test "readLine" {
-    var line = try readLine("125 17\n", std.testing.allocator);
-    defer line.deinit();
-
-    try std.testing.expectEqual(125, line.get().?);
-    try std.testing.expectEqual(17, line.get().?);
     try std.testing.expectEqual(null, line.get());
 }
 
@@ -152,5 +160,5 @@ test "it should do nothing" {
     };
 
     try std.testing.expectEqual(55312, try problem.part1());
-    try std.testing.expectEqual(1, try problem.part2());
+    //try std.testing.expectEqual(1, try problem.part2());
 }
